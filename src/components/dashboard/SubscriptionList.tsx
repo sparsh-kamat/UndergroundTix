@@ -29,35 +29,31 @@ interface SubscriptionListProps {
 }
 
 
-export default function SSubsriptionList({
+export default function SubscriptionList({
   recentSubscriptions = [],
   onSubscriptionDeleted,
   onEditSubscription,
 }: SubscriptionListProps) {
-  async function deleteSubscription(id: string) {
-    // Placeholder for delete logic
-    console.log(`Delete subscription with id: ${id}`);
+  async function deleteSubscription(subscription: Subscription) {
+    if (!window.confirm(`Delete ${subscription.name}? This cannot be undone.`)) {
+      return;
+    }
 
-    // You can implement the actual deletion logic here
-    // For example, you might want to call an API endpoint to delete the subscription
     try {
-      // Call your API to delete the subscription
-      const response = await fetch(`/api/subscriptions/${id}`, {
+      const response = await fetch(`/api/subscriptions/${subscription.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
       });
       if (!response.ok) {
-        throw new Error(`Failed to delete subscription with id ${id}`);
+        throw new Error("Failed to delete subscription");
       }
       onSubscriptionDeleted?.(); // Call the callback if provided
       //remove the subscription from the UI or update the state accordingly
       // For example, you might want to refetch the subscriptions or update the local state
-
-      console.log(`Subscription with id ${id} deleted successfully`);
     } catch (error) {
-      console.error(`Failed to delete subscription with id ${id}:`, error);
+      console.error("Failed to delete subscription:", error);
     }
     // Optionally, you can return a success message or handle the UI update
   }
@@ -105,7 +101,7 @@ export default function SSubsriptionList({
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
                   <DropdownMenuItem onClick={()=> onEditSubscription(subscription)}>Edit</DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => deleteSubscription(subscription.id)}
+                    onClick={() => deleteSubscription(subscription)}
                   >
                     Delete
                   </DropdownMenuItem>

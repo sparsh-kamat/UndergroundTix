@@ -5,7 +5,6 @@ import AddSubscriptionCard from "@/components/subscription/AddSubscriptionCard";
 
 // You might want to define these lists centrally or fetch them if they become dynamic
 const handleSuccess = () => {
-  console.log("Subscription added successfully, navigating from form.");
 };
 
 export default  function AddSubscriptionPage() {

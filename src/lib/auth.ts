@@ -4,7 +4,7 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client"; // Import your UserRole enum
 
@@ -35,19 +35,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // 2. Find user
         const user = await prisma.user.findUnique({ where: { email: email } });
         if (!user) return null; // User not found
-        console.log("User found:", user);
-
         // 3. Check if password is set (might be OAuth user)
-        console.log("User password:", user.password); // Log the password for debugging
         if (!user.password) return null; // No password set for this user
 
         //4.check email verification
-        console.log("User email verified:", user.emailVerified); // Log the email verification status
         if (!user.emailVerified) return null; // Email not verified
 
         // 5. Compare password hash
         const isValidPassword = await bcrypt.compare(password, user.password);
-        console.log("Password match:", isValidPassword); // Log the password match result
         if (!isValidPassword) return null; // Passwords don't match
 
         // 5. Return user object if valid
@@ -65,15 +60,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // This callback is invoked *before* the session callback.
     // It receives the user object from 'authorize' or the adapter on initial sign-in.
     // Its job is to encode necessary user data into the JWT payload.
-    async jwt({ token, user, account, trigger }) {
-      console.log("[Callback: jwt] Trigger:", trigger);
-      console.log("[Callback: jwt] User received:", user); // User obj only on sign-in/sign-up
-      console.log("[Callback: jwt] Account received:", account); // Account obj only on OAuth sign-in/sign-up
-
+    async jwt({ token, user }) {
       // On initial sign-in (trigger is 'signIn' or 'signUp'), add custom claims to the token
       if (user) {
         // The user object passed contains details from authorize or adapter
-        console.log("[Callback: jwt] Adding user details to token");
         token.id = user.id;
         token.role = user.role; // Add role from user object
         token.picture = user.image; // Use standard 'picture' claim for image
@@ -83,7 +73,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       // Subsequent calls (trigger is 'update' or 'getSession') will just pass the existing token
 
-      console.log("[Callback: jwt] Returning token:", token);
       return token; // The token object is encrypted and stored in the session cookie
     },
     // --- End JWT Callback ---
@@ -92,8 +81,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // This callback receives the *decoded* JWT payload (in the 'token' parameter).
     // Its job is to shape the final 'session.user' object available to the client.
     async session({ session, token }) {
-      console.log("[Callback: session] Token object received:", token);
-
       // Assign properties from the token to the session.user object
       if (token && session.user) {
         session.user.id = token.id as string; // Get ID from token
@@ -101,12 +88,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.image = token.picture as string | null; // Get image from token's picture claim
         session.user.name = token.name; // Get name from token
         session.user.email = (token.email as string | null | undefined) ?? session.user.email; // Get email from token
-      } else {
-        console.log(
-          "[Callback: session] Warning: Token or session.user missing."
-        );
       }
-      console.log("[Callback: session] Modified session:", session);
       return session; // Return the session object for client/server use
     },
     // --- End Session Callback ---

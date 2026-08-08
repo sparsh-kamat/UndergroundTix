@@ -98,7 +98,6 @@ function ResetPasswordForm() {
 
     //log to console
     try {
-      console.log(JSON.stringify(form.getValues()));
       const response = await fetch("/api/auth/resetpassword?token=" + token, {
         method: "POST",
         body: JSON.stringify({
@@ -112,8 +111,6 @@ function ResetPasswordForm() {
 
       // Handle the response
       if (response.ok) {
-        const data = await response.json();
-        console.log("Password changed successfully:", data);
         toast.success("Password Changed Successfully", {
           description: "You can now log in with your new password.",
         });

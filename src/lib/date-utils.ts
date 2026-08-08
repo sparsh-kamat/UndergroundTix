@@ -1,63 +1,63 @@
-// src/lib/date-utils.ts
-import { addMonths, addYears, lastDayOfMonth, setDate, getDate, getMonth } from 'date-fns'; // Use v3 imports
+import { addMonths, addYears, getDate, lastDayOfMonth, setDate } from "date-fns";
+
+function addClampedMonths(date: Date, months: number): Date {
+  const originalDay = getDate(date);
+  const targetMonth = addMonths(date, months);
+  const lastDay = getDate(lastDayOfMonth(targetMonth));
+
+  return setDate(targetMonth, Math.min(originalDay, lastDay));
+}
+
+function calculateOccurrence(
+  lastBillingDate: Date,
+  billingCycle: string,
+  occurrence: number
+): Date | null {
+  switch (billingCycle.toUpperCase()) {
+    case "MONTHLY":
+      return addClampedMonths(lastBillingDate, occurrence);
+    case "QUARTERLY":
+      return addClampedMonths(lastBillingDate, occurrence * 3);
+    case "YEARLY":
+    case "ANNUALLY":
+      return addYears(lastBillingDate, occurrence);
+    case "ONE-TIME":
+      return null;
+    default:
+      return null;
+  }
+}
 
 export function calculateNextBillingDate(
   lastBillingDate: Date,
   billingCycle: string
 ): Date | null {
-  if (!lastBillingDate || !(lastBillingDate instanceof Date) || isNaN(lastBillingDate.getTime())) {
-    // Handle invalid lastBillingDate if necessary, though Zod should catch it
-    return null; 
+  if (!(lastBillingDate instanceof Date) || Number.isNaN(lastBillingDate.getTime())) {
+    return null;
   }
 
-  const lastBillDay = getDate(lastBillingDate); // Day of the month (1-31)
+  return calculateOccurrence(lastBillingDate, billingCycle, 1);
+}
 
-  switch (billingCycle.toUpperCase()) {
-    case "MONTHLY": {
-      let nextDate = addMonths(lastBillingDate, 1);
-      const nextMonthLastDay = getDate(lastDayOfMonth(nextDate));
-      // If the original day was, e.g., 31st, and next month only has 30 days,
-      // set to the last day of that next month.
-      if (lastBillDay > nextMonthLastDay) {
-        nextDate = setDate(nextDate, nextMonthLastDay);
-      } else {
-        // Otherwise, try to keep the same day of the month.
-        // setDate handles month rollovers correctly if lastBillDay is too high for the added month
-        // but we want to ensure it doesn't go *beyond* the intended month.
-        const tempNextDate = setDate(addMonths(lastBillingDate, 1), lastBillDay);
-        if (getMonth(tempNextDate) !== getMonth(addMonths(lastBillingDate,1))) { // rolled over to next month
-            nextDate = lastDayOfMonth(addMonths(lastBillingDate,1));
-        } else {
-            nextDate = tempNextDate;
-        }
-      }
-      return nextDate;
-    }
-    case "QUARTERLY": {
-      let nextDate = addMonths(lastBillingDate, 3);
-      const nextQuarterMonthLastDay = getDate(lastDayOfMonth(nextDate));
-      if (lastBillDay > nextQuarterMonthLastDay) {
-        nextDate = setDate(nextDate, nextQuarterMonthLastDay);
-      } else {
-        const tempNextDate = setDate(addMonths(lastBillingDate, 3), lastBillDay);
-        if (getMonth(tempNextDate) !== getMonth(addMonths(lastBillingDate,3))) {
-            nextDate = lastDayOfMonth(addMonths(lastBillingDate,3));
-        } else {
-            nextDate = tempNextDate;
-        }
-      }
-      return nextDate;
-    }
-    case "YEARLY":
-    case "ANNUALLY": { // Handle variations
-      // addYears handles leap years correctly for Feb 29th.
-      // If lastBillingDate was Feb 29 and next year is not a leap year, it becomes Feb 28.
-      return addYears(lastBillingDate, 1);
-    }
-    case "ONE-TIME":
-      return null; // Or a very distant date if your system requires a date
-    default:
-      console.warn(`Unknown billing cycle for nextBillingDate calculation: ${billingCycle}`);
-      return null; // Or throw an error
+export function calculateNextBillingDateAfter(
+  lastBillingDate: Date,
+  billingCycle: string,
+  afterDate = new Date()
+): Date | null {
+  if (
+    !(lastBillingDate instanceof Date) ||
+    Number.isNaN(lastBillingDate.getTime()) ||
+    !(afterDate instanceof Date) ||
+    Number.isNaN(afterDate.getTime())
+  ) {
+    return null;
   }
+
+  for (let occurrence = 1; occurrence <= 1200; occurrence += 1) {
+    const candidate = calculateOccurrence(lastBillingDate, billingCycle, occurrence);
+    if (!candidate) return null;
+    if (candidate.getTime() > afterDate.getTime()) return candidate;
+  }
+
+  return null;
 }

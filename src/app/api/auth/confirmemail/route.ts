@@ -34,7 +34,6 @@ export async function POST(request: Request) {
 
         //user doesnt exist
         if (!existinguser) {
-            console.error("User does not exist:", email);
             return NextResponse.json(
                 { Error: "User does not exist" },
                 { status: 404 }
@@ -45,7 +44,6 @@ export async function POST(request: Request) {
         const isverified = existinguser?.emailVerified;
         //user exists and is not verified
         if (existinguser && !isverified) {
-            console.error("User not verified ", email);
             return NextResponse.json(
                 { Error: "Register Again" },
                 { status: 409 }
@@ -55,10 +53,7 @@ export async function POST(request: Request) {
         //user exists and is verified
         if (existinguser && isverified) {
             const token = await generateToken(email);
-            console.log("Token generated:", token);
-            sendResetPasswordEmail(
-                email, token);
-            console.log("Reset password email sent to:", email);
+            await sendResetPasswordEmail(email, token);
             return NextResponse.json(
                 { message: "Reset password email sent" },
                 { status: 200 }

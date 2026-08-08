@@ -3,7 +3,8 @@ import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@/lib/auth'; // Your auth setup
 import { prisma } from '@/lib/prisma';
 import { subscriptionSchema } from '@/lib/validations/subscription'; // We'll use this for PUT
-import { calculateNextBillingDate } from '@/lib/date-utils';
+import { calculateNextBillingDateAfter } from '@/lib/date-utils';
+import { advancePastDueSubscriptions } from '@/lib/renewals';
 
 export async function GET(
     request: NextRequest,
@@ -34,7 +35,8 @@ export async function GET(
         if (!subscription) {
             return NextResponse.json({ error: "Subscription not found" }, { status: 404 });
         }
-        return NextResponse.json(subscription, { status: 200 });
+        const [currentSubscription] = await advancePastDueSubscriptions([subscription]);
+        return NextResponse.json(currentSubscription, { status: 200 });
 
     }
     catch (error) {
@@ -99,10 +101,15 @@ export async function PUT(
         }
 
         // Calculate next billing date based on the last billing date and billing cycle
-        const calulatedNextBillingDate = calculateNextBillingDate(
+        const calculatedNextBillingDate = calculateNextBillingDateAfter(
             new Date(lastBillingDate),
-            billingCycle
+            billingCycle,
+            new Date()
         );
+
+        if (!calculatedNextBillingDate) {
+            return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
+        }
 
         const updatedSubscription = await prisma.subscription.update({
             where: {
@@ -115,7 +122,7 @@ export async function PUT(
                 currency,
                 billingCycle,
                 lastBillingDate: new Date(lastBillingDate),
-                nextBillingDate: calulatedNextBillingDate || undefined,
+                nextBillingDate: calculatedNextBillingDate,
                 status,
                 category,
                 folder,

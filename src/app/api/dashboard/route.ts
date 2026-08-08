@@ -4,9 +4,9 @@ import { calculateNormalizedMonthlyCost, calculateNormalizedYearlyCost } from "@
 import { getDaysRemaining } from "@/lib/subscription-utils";
 import { type Subscription } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { advancePastDueSubscriptions } from "@/lib/renewals";
 
 import { getExchangeRates } from "@/lib/currency";
-import { startOfMonth } from "date-fns";
 
 interface UpcomingRenewal extends Subscription {
     daysUntilRenewal: number | null; // Days until the next billing date, null if not applicable
@@ -28,9 +28,7 @@ export interface DashboardData {
     // Total Monthly Cost ,Active Subscriptions, Annual Spending, Upcoming Renewals is top cards
     topCards: {
         totalMonthlyCost: number;
-        monthlyCostChange: number; // This can be calculated if needed
         activeSubscriptions: number;
-        activeSubscriptionsChange: number; // This can be calculated if needed
         totalYearlyCost: number;
         numberOfUpcomingRenewals: number;
 
@@ -53,7 +51,7 @@ export async function GET() {
         //     orderBy: { createdAt: "desc" },
         // });
 
-        const [fetchedSubscriptions, exchangeRates] = await Promise.all([
+        const [storedSubscriptions, exchangeRates] = await Promise.all([
             prisma.subscription.findMany({
                 where: { userId },
                 orderBy: { createdAt: "desc" },
@@ -69,7 +67,10 @@ export async function GET() {
 
         //current date/time 
         const now_server = new Date();
-        const startOfCurrentMonth = startOfMonth(now_server);
+        const fetchedSubscriptions = await advancePastDueSubscriptions(
+            storedSubscriptions,
+            now_server
+        );
         const fifteenDaysFromNow = new Date(now_server.getTime() + 15 * 24 * 60 * 60 * 1000);
 
 
@@ -87,9 +88,7 @@ export async function GET() {
                 recentSubscriptions: fetchedSubscriptions.slice(0, 5), // Can still show all (inactive) subscriptions
                 topCards: {
                     totalMonthlyCost: 0,
-                    monthlyCostChange: 0,
                     activeSubscriptions: 0,
-                    activeSubscriptionsChange: 0,
                     totalYearlyCost: 0,
                     numberOfUpcomingRenewals: 0,
                 },
@@ -97,14 +96,9 @@ export async function GET() {
             return NextResponse.json(emptyDashboardData, { status: 200 });
         }
 
-        const activeSubsLastMonth = activeSubscriptions.filter((sub: Subscription) => new Date(sub.createdAt) < startOfCurrentMonth);
-
-
         // Calculate total monthly and yearly costs, active subscriptions, and upcoming renewals
         let totalMonthlyCost = 0;
-        let totalMonthlyCostChange = 0; // This can be calculated if needed
         let totalYearlyCost = 0;
-        const activeSubscriptionsChange = activeSubscriptions.length - activeSubsLastMonth.length; // Change in active subscriptions compared to last month
 
         const spendingByCategory: { [key: string]: number } = {};
 
@@ -121,19 +115,6 @@ export async function GET() {
                 spendingByCategory[sub.category] = (spendingByCategory[sub.category] || 0) + normalizedCost;
             }
         });
-
-        // Calculate total monthly cost change
-        if (activeSubsLastMonth.length > 0) {
-            const lastMonthTotal = activeSubsLastMonth.reduce((acc, sub) => {
-                const originalCost = sub.cost.toNumber();
-                const convertedCost = originalCost * (exchangeRates[sub.currency] || 1);
-                return acc + calculateNormalizedMonthlyCost(convertedCost, sub.billingCycle);
-            }, 0);
-            totalMonthlyCostChange = totalMonthlyCost - lastMonthTotal;
-        }
-        else {
-            totalMonthlyCostChange = totalMonthlyCost; // If no previous subscriptions, change is equal to current
-        }
 
         //total active subscriptions
         const totalActiveSubscriptions = activeSubscriptions.length;
@@ -177,8 +158,6 @@ export async function GET() {
             topCards: {
                 totalMonthlyCost,
                 activeSubscriptions: totalActiveSubscriptions,
-                monthlyCostChange: totalMonthlyCostChange, // Format to 2 decimal places
-                activeSubscriptionsChange: activeSubscriptionsChange,
                 totalYearlyCost,
                 numberOfUpcomingRenewals,
             },

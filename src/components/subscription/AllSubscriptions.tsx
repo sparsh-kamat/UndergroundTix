@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { type Subscription } from "@prisma/client";
 import  AddSubscriptionCard  from "@/components/subscription/AddSubscriptionCard";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,9 @@ const formatCurrency = (value: number, currency: string) => {
   }).format(value);
 };
 
+const normalizeStatus = (status: string) =>
+  status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+
 export default function AllSubscriptions() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,10 +36,9 @@ export default function AllSubscriptions() {
   // State for the edit modal
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      // Set loading to true only on initial fetch
-      if (loading) setLoading(true);
+      setLoading(true);
       const response = await fetch("/api/subscriptions");
       if (!response.ok) throw new Error("Failed to fetch subscriptions");
       
@@ -49,19 +51,23 @@ export default function AllSubscriptions() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (subscription: Subscription) => {
+    if (!window.confirm(`Delete ${subscription.name}? This cannot be undone.`)) {
+      return;
+    }
+
     try {
-        const response = await fetch(`/api/subscriptions/${id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/subscriptions/${subscription.id}`, { method: 'DELETE' });
         if (!response.ok) throw new Error('Failed to delete');
         toast.success('Subscription deleted!');
         fetchData(); // Re-fetch all data to ensure consistency
-    } catch (e) {
+    } catch {
         toast.error('Failed to delete subscription.');
     }
   }
@@ -182,7 +188,7 @@ export default function AllSubscriptions() {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                         <DropdownMenuItem onClick={() => handleEdit(sub)}>Edit</DropdownMenuItem>
-                                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(sub.id)}>Delete</DropdownMenuItem>
+                                        <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(sub)}>Delete</DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
@@ -196,7 +202,7 @@ export default function AllSubscriptions() {
                         </CardContent>
                         <CardFooter className="flex gap-2">
                             <Badge variant="outline">{sub.category}</Badge>
-                             <Badge variant={sub.status === 'Active' ? 'default' : 'secondary'}>{sub.status}</Badge>
+                             <Badge variant={sub.status.toLowerCase() === 'active' ? 'default' : 'secondary'}>{normalizeStatus(sub.status)}</Badge>
                         </CardFooter>
                     </Card>
                 ))}

@@ -98,7 +98,6 @@ function RegisterFormContent() {
     setIsLoadingCredentials(true);
     //log to console
     try {
-      console.log(JSON.stringify(form.getValues()));
       const response = await fetch("/api/auth/register", {
         method: "POST",
         body: JSON.stringify({

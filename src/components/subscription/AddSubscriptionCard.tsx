@@ -65,6 +65,11 @@ const categories = [
   "Other"
 ];
 const folders = ["Work", "Personal", "Default", "Other"]; // Example folders
+const statuses = ["Active", "Paused", "Cancelled"];
+
+function normalizeStatus(status: string): string {
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+}
 
 interface SubscriptionFormCardProps {
   subscriptionToEdit?: Subscription | null; // Optional prop for editing an existing subscription
@@ -105,6 +110,7 @@ export default function AddSubscriptionCard({
         ...subscriptionToEdit,
         cost: Number(subscriptionToEdit.cost), // Convert Decimal to number for the form
         lastBillingDate: new Date(subscriptionToEdit.lastBillingDate),
+        status: normalizeStatus(subscriptionToEdit.status),
         notes: subscriptionToEdit.notes || "", // Ensure notes is a string
       });
     }
@@ -112,7 +118,6 @@ export default function AddSubscriptionCard({
 
   //   http://localhost:3000/api/subscriptions post
   const onSubmit = async (data: SubscriptionFormData) => {
-    console.log("Current form errors:", form.formState.errors);
 
     setIsLoading(true);
     const url = isEditMode
@@ -135,8 +140,6 @@ export default function AddSubscriptionCard({
         );
       }
 
-      const result = await response.json();
-      console.log("Subscription added:", result);
       // Show success toast and redirect
       toast.success(
         `Subscription successfully ${isEditMode ? "updated" : "added"}!`
@@ -223,7 +226,7 @@ export default function AddSubscriptionCard({
                     <FormLabel>Currency</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger className="w-full">
@@ -251,7 +254,7 @@ export default function AddSubscriptionCard({
                     <FormLabel>Billing Cycle</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger className="w-full">
@@ -271,6 +274,30 @@ export default function AddSubscriptionCard({
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {statuses.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             {/* Last Billing Date Field */}
             <FormField
               control={form.control}
@@ -317,7 +344,7 @@ export default function AddSubscriptionCard({
                   <FormLabel>Category</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
@@ -344,7 +371,7 @@ export default function AddSubscriptionCard({
                   <FormLabel>Folder</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">

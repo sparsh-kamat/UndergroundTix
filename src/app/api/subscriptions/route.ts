@@ -2,7 +2,8 @@ import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma"; // Your shared Prisma client
 import { auth } from  "@/lib/auth"
 import { subscriptionSchema } from "@/lib/validations/subscription";
-import { calculateNextBillingDate } from "@/lib/date-utils";
+import { calculateNextBillingDateAfter } from "@/lib/date-utils";
+import { advancePastDueSubscriptions } from "@/lib/renewals";
 
 
 export async function POST(request: NextRequest) {
@@ -38,11 +39,15 @@ export async function POST(request: NextRequest) {
         } = validation.data
 
         // Calculate next billing date based on the last billing date and billing cycle
-        const calculatedNextBillingDate = calculateNextBillingDate(
+        const calculatedNextBillingDate = calculateNextBillingDateAfter(
             new Date(lastBillingDate),
-            billingCycle
+            billingCycle,
+            new Date()
         );
-        console.log("Next Billing Date:", calculatedNextBillingDate);
+
+        if (!calculatedNextBillingDate) {
+            return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
+        }
 
         const newSubscription = await prisma.subscription.create({// lowercase 's'
             data: {
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
                 currency,
                 billingCycle,
                 lastBillingDate: new Date(lastBillingDate), // Ensure this is a Date object
-                nextBillingDate: calculatedNextBillingDate || new Date(lastBillingDate), // Use the calculated next billing date or fallback
+                nextBillingDate: calculatedNextBillingDate,
                 status, // Default to 'active' if not provided
                 category,
                 folder,
@@ -81,7 +86,7 @@ export async function GET() {
     }
 
     try {
-        const subscriptions = await prisma.subscription.findMany({
+        const storedSubscriptions = await prisma.subscription.findMany({
             where: {
                 userId: session.user.id,
             },
@@ -89,6 +94,11 @@ export async function GET() {
                 nextBillingDate: 'asc',
             },
         });
+
+        const subscriptions = await advancePastDueSubscriptions(storedSubscriptions);
+        subscriptions.sort(
+            (a, b) => a.nextBillingDate.getTime() - b.nextBillingDate.getTime()
+        );
 
         return NextResponse.json(subscriptions, { status: 200 });
     } catch (error) {

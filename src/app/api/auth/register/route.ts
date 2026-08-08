@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"; // Your shared Prisma client
 import { z } from "zod";
 import { generateToken } from "@/lib/token"; // Import token generator
 import { sendVerificationEmail } from "@/lib/mail"; // Import email sender
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 // Define the schema for the registration form
 const registerSchema = z
@@ -60,7 +60,6 @@ export async function POST(request: Request) {
         await prisma.user.delete({
             where: { email: email },
             });
-        console.log("User deleted:", email);
     }
 
     //user is new, hash the password
@@ -80,7 +79,7 @@ export async function POST(request: Request) {
 
     await sendVerificationEmail(email, tokenGenerated);
 
-    const { password: _, ...userWithoutPassword } = newUser;
+    const userWithoutPassword = { ...newUser, password: undefined };
 
     return NextResponse.json({
       user: userWithoutPassword,

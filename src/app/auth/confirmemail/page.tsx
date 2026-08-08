@@ -73,7 +73,6 @@ function ConfirmEmailForm() {
 
     //log to console
     try {
-      console.log(JSON.stringify(form.getValues()));
       const response = await fetch("/api/auth/confirmemail", {
         method: "POST",
         body: JSON.stringify({

@@ -62,7 +62,6 @@ export const deleteVerificationToken = async (
         },
       },
     });
-    console.log(`Deleted verification token for identifier: ${identifier}`);
     return true;
   } catch (error) {
     console.error("Error deleting verification token:", error);

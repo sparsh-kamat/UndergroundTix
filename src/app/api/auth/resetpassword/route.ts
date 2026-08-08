@@ -5,7 +5,7 @@ import {
     deleteVerificationToken,
 } from "@/data/token"; // Import data access functions
 import { z } from "zod";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const resetpasswordschema = z
     .object({
@@ -25,8 +25,6 @@ export async function POST(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const token = searchParams.get("token");
-
-    console.log("Token from URL: ", token);
 
     // Parse the request body
     const body = await request.json();
@@ -48,7 +46,6 @@ export async function POST(request: NextRequest) {
 
     //hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("Password hashed successfully");
 
     //validate token presence
     if (!token) {
@@ -106,11 +103,8 @@ export async function POST(request: NextRequest) {
                 password: hashedPassword,
             },
         });
-        console.log('User password updated successfully: ${user.email}');
-
         //delete the token
         await deleteVerificationToken(existingToken.identifier, token);
-        console.log("Token deleted successfully");
         //redirect to signin
         return NextResponse.json(
             { message: "Password changed successfully" },

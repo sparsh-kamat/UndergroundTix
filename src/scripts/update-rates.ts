@@ -1,6 +1,7 @@
 // scripts/update-rates.ts
 import { PrismaClient, Prisma } from '@prisma/client';
 import "dotenv/config"; // To load environment variables from .env
+import { pathToFileURL } from "node:url";
 
 const prisma = new PrismaClient();
 
@@ -62,11 +63,16 @@ export async function updateDatabaseRates() {
   }
 }
 
-updateDatabaseRates()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+const isDirectRun =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isDirectRun) {
+  updateDatabaseRates()
+    .catch((error) => {
+      console.error("Exchange-rate update failed:", error);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

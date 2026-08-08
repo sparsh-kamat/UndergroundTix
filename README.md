@@ -2,13 +2,12 @@
 
 A modern, full-stack application designed to help you effortlessly track and manage your recurring subscriptions. Get a clear overview of your monthly and yearly spending with an interactive dashboard.
 
-[](https://www.google.com/search?q=https://subsciptiontrackr.vercel.app/)
-[](https://opensource.org/licenses/MIT)
+[Live Demo](https://subsciptiontrackr.vercel.app/) · [MIT License](./LICENSE)
 
 ## ✨ Live Demo
 
 Check out the live application hosted on Vercel:
-**[https://subsciptiontrackr.vercel.app/](https://www.google.com/search?q=https://subsciptiontrackr.vercel.app/)**
+**[https://subsciptiontrackr.vercel.app/](https://subsciptiontrackr.vercel.app/)**
 
 ![ScreenRecording2025-06-08at4 26 04AM-ezgif com-cut](https://github.com/user-attachments/assets/84938ccb-1c51-4edd-84ce-a1b2e52b6541)
 

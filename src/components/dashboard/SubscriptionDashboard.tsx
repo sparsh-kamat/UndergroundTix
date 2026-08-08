@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import Link from "next/link";
 import AddSubscriptionCard from "@/components/subscription/AddSubscriptionCard";
-import SubsriptionList from "@/components/dashboard/SubscriptionList";
+import SubscriptionList from "@/components/dashboard/SubscriptionList";
 import SpendPieChart from "./SpendCategoryPieChart";
 import RenewingSubscriptions from "./RenewingSubscriptions";
 import { useEffect, useState } from "react";
@@ -84,12 +84,9 @@ export default function SubscriptionsDashboard() {
       }
       const data: DashboardData = await response.json();
       setDashboardData(data);
-      //log
-      console.log("Dashboard Data:", data);
     } catch (error) {
       if (error instanceof Error) setIsError(error.message);
       else setIsError("an unknown problem occured ");
-      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -192,10 +189,6 @@ export default function SubscriptionsDashboard() {
         activeSubscriptionsCount={dashboardData.activeSubscriptions}
         totalYearlyCost={dashboardData.totalYearlyCost}
         upcomingRenewalsCount={dashboardData.numberOfUpcomingRenewals}
-        monthlyCostChange={dashboardData.topCards.monthlyCostChange}
-        activeSubscriptionsChange={
-          dashboardData.topCards.activeSubscriptionsChange
-        }
       />
       <div className="grid gap-4 sm:grid-cols-1  md:grid-cols-5 lg:grid-cols-7  p-4  w-full">
         <Card className="md:col-span-3 lg:col-span-4 ">
@@ -232,7 +225,7 @@ export default function SubscriptionsDashboard() {
             <CardDescription>Manage your active subscriptions</CardDescription>
           </CardHeader>
           <CardContent>
-            <SubsriptionList
+            <SubscriptionList
               recentSubscriptions={dashboardData.recentSubscriptions}
               onSubscriptionDeleted={fetchData} // Re-fetch data after deletion
               onEditSubscription={handleEdit} // Pass the edit handler

@@ -60,11 +60,8 @@ export async function GET(request: NextRequest) {
         emailVerified: new Date(),
       },
     });
-    console.log('User email verified successfully: ${user.email}');
-
     //delete the token
     await deleteVerificationToken(existingToken.identifier, token);
-    console.log("Token deleted successfully");
     //redirect to signin
     return NextResponse.redirect(new URL("/auth/signin?success=EmailVerified", request.nextUrl.origin));
 

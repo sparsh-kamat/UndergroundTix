@@ -1,8 +1,8 @@
-import {v4 as uuidv4} from 'uuid';
+import * as crypto from "node:crypto";
 import { createVerificationToken, getVerificationTokenByEmail, deleteVerificationToken } from '@/data/token';
 
 export const generateToken = async (email: string) => {
-    const token = uuidv4();
+    const token = crypto.randomUUID();
     const expires = new Date().getTime() + 60 * 60 * 1000; // 1 hour expiration
 
     //check if token alreaday exists

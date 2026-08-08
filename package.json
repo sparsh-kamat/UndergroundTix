@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
     "prisma:generate": "prisma generate",
     "postinstall": "prisma generate",
     "db:update-rates": "tsx src/scripts/update-rates.ts"
@@ -64,7 +66,8 @@
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "react-is": "^19.0.0-rc-69d4b800-20241021"

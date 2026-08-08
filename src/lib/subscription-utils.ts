@@ -66,6 +66,22 @@ export function calculateNormalizedYearlyCost(
     }
 }
 
+export function convertToBaseCurrency(
+    cost: number,
+    currency: string,
+    exchangeRates: Record<string, number>,
+): number {
+    return cost * (exchangeRates[currency] ?? 1);
+}
+
+export function getActiveSubscriptions<T extends { status: string | null }>(
+    subscriptions: T[],
+): T[] {
+    return subscriptions.filter(
+        (subscription) => subscription.status?.toLowerCase() === "active",
+    );
+}
+
 export function getDaysRemaining(dateInput: string | Date | null | undefined): number | null {
     if (!dateInput) return null;
   

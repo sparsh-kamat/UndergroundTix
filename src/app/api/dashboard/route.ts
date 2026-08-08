@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { calculateNormalizedMonthlyCost, calculateNormalizedYearlyCost } from "@/lib/subscription-utils";
-import { getDaysRemaining } from "@/lib/subscription-utils";
+import {
+    calculateNormalizedMonthlyCost,
+    calculateNormalizedYearlyCost,
+    convertToBaseCurrency,
+    getActiveSubscriptions,
+    getDaysRemaining,
+} from "@/lib/subscription-utils";
 import { type Subscription } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { advancePastDueSubscriptions } from "@/lib/renewals";
@@ -75,7 +80,7 @@ export async function GET() {
 
 
         //filter out subscriptions that are not active
-        const activeSubscriptions = fetchedSubscriptions.filter((sub: Subscription) => sub.status?.toLowerCase() === "active");
+        const activeSubscriptions = getActiveSubscriptions(fetchedSubscriptions);
         //if there are no active subscriptions, return null
         if (activeSubscriptions.length === 0) {
             const emptyDashboardData: DashboardData = {
@@ -105,7 +110,11 @@ export async function GET() {
         activeSubscriptions.forEach((sub: Subscription) => {
             const originalCost = sub.cost.toNumber(); // Convert Decimal to number
             // Convert cost to the user's preferred currency if needed
-            const convertedCost = originalCost * (exchangeRates[sub.currency] || 1); // Fallback to 1 if rate not found
+            const convertedCost = convertToBaseCurrency(
+                originalCost,
+                sub.currency,
+                exchangeRates,
+            );
 
             totalMonthlyCost += calculateNormalizedMonthlyCost(convertedCost, sub.billingCycle);
             totalYearlyCost += calculateNormalizedYearlyCost(convertedCost, sub.billingCycle);
